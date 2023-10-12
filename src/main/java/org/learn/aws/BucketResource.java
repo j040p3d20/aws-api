@@ -1,5 +1,6 @@
 package org.learn.aws;
 
+import lombok.extern.slf4j.Slf4j;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.ListBucketsResponse;
 
@@ -10,7 +11,9 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import java.util.List;
 
-@Path("/buckets") public class BucketsResource {
+@Slf4j
+@Path("/buckets")
+public class BucketResource {
 
     @Inject
     BucketMapper bucketMapper;
@@ -21,7 +24,8 @@ import java.util.List;
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     public List<BucketDto> list() {
-        final ListBucketsResponse list = sClient.listBuckets();
-        return bucketMapper.map(list.buckets());
+        final ListBucketsResponse response = sClient.listBuckets();
+        log.info(response.buckets().toString());
+        return bucketMapper.map(response.buckets());
     }
 }

@@ -1,6 +1,7 @@
 package org.learn.aws.producers;
 
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
+import software.amazon.awssdk.services.sqs.SqsAsyncClient;
 import software.amazon.awssdk.services.sqs.SqsClient;
 
 import javax.enterprise.context.ApplicationScoped;
@@ -16,5 +17,10 @@ public class SqsClientProducer {
     @Produces
     public SqsClient sqsClient() {
         return SqsClient.builder().credentialsProvider(awsCredentialsProvider).build();
+    }
+
+    @Produces
+    public SqsAsyncClient sqsAsyncClient() {
+        return SqsAsyncClient.builder().credentialsProvider(awsCredentialsProvider).build();
     }
 }

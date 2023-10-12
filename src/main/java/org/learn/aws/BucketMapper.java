@@ -12,5 +12,7 @@ public interface BucketMapper {
     @Mapping(target = "name", expression = "java(bucket.name())")
     @Mapping(target = "creationDate", expression = "java(bucket.creationDate())")
     public BucketDto map(Bucket bucket);
+
     public List<BucketDto> map(List<Bucket> buckets);
+
 }
