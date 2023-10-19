@@ -1,6 +1,8 @@
 package org.learn.aws;
 
 import io.smallrye.mutiny.Multi;
+import io.smallrye.mutiny.Uni;
+import io.smallrye.mutiny.infrastructure.Infrastructure;
 import io.smallrye.mutiny.subscription.Cancellable;
 import lombok.Synchronized;
 import lombok.extern.slf4j.Slf4j;
@@ -18,7 +20,6 @@ import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
-import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -30,9 +31,7 @@ public class QueueResource {
 
     private static final Integer MAX_NUMBEROF_MESSAGES = 10;
 
-    private static final Integer WAIT_TIME_SECONDS = 5;
-
-    private static final long POOLING_INTERVAL_SECONDS = 5;
+    private static final Integer WAIT_TIME_SECONDS = 10;
 
     @Inject
     SqsClient sqsClient;
@@ -40,7 +39,7 @@ public class QueueResource {
     Map<String, Cancellable> subscriptions = new HashMap<>();
 
     public void destroy(@Observes @Destroyed(ApplicationScoped.class) Object event) {
-        log.info("Destroyed", event);
+        log.info("Destroyed : {}", event);
         subscriptions.forEach((url, cancellable) -> {
             log.info("canceling subscription for {}", url);
             try {
@@ -61,14 +60,15 @@ public class QueueResource {
     }
 
     public List<Message> fetchMessages(Long l, String url) {
-        log.debug("fetching messages for tick {} : queue : {}", l, url);
+        log.info("fetching messages for tick {} : queue : {}", l, url);
         final ReceiveMessageRequest request = ReceiveMessageRequest.builder()
                                                                    .queueUrl(url)
                                                                    .maxNumberOfMessages(MAX_NUMBEROF_MESSAGES)
                                                                    .waitTimeSeconds(WAIT_TIME_SECONDS)
+                                                                   .visibilityTimeout(3600)
                                                                    .build();
         final ReceiveMessageResponse response = sqsClient.receiveMessage(request);
-        log.debug("received messages for queue : {} : {}", url, response.messages().size());
+        log.info("received messages for queue : {} : {}", url, response.messages().size());
         return response.messages();
     }
 
@@ -95,24 +95,19 @@ public class QueueResource {
         if (!subscriptions.containsKey(url)) {
             log.info("creating subscription for {}", url);
             Cancellable cancellable =
-                Multi.createFrom()
-                     .ticks()
-                     .every(Duration.ofSeconds(POOLING_INTERVAL_SECONDS))
-                     .capDemandsTo(5)
-//                .filter()
-                     .onItem()
-                     .invoke(i -> log.debug("tick : {}", i))
-                     .map(i -> fetchMessages(i, url))
-//                 .onOverflow().invoke(() -> {}).drop()
-                     .flatMap(mm -> Multi.createFrom().iterable(mm))
-                     .onItem()
-                     .invoke(m -> {
-                         sqsClient.deleteMessage(DeleteMessageRequest.builder().queueUrl(url).receiptHandle(m.receiptHandle()).build());
-                         log.info("queue {} message {} processed and deleted", url, m.body());
-                     })
-                     .subscribe()
-                     .with(m -> log.debug("queue {} tick {} message completed {}", url, m),
-                           ex -> log.error("queue " + url + " error", ex), () -> log.info("queue {} completed", url));
+                Uni.createFrom().item(() -> fetchMessages(0L, url))
+                   .repeat().indefinitely()
+                   .emitOn(Infrastructure.getDefaultWorkerPool())
+                   .runSubscriptionOn(Infrastructure.getDefaultWorkerPool())
+                   .flatMap(Multi.createFrom()::iterable)
+                   .invoke(m -> {
+                       sqsClient.deleteMessage(DeleteMessageRequest.builder().queueUrl(url).receiptHandle(m.receiptHandle()).build());
+                       log.info("queue {} message {} processed and deleted", url, m.body());
+                   })
+                   .subscribe().with(
+                       m -> log.debug("queue {} message {}", url, m),
+                       ex -> log.error("queue " + url + " error", ex),
+                       () -> log.info("queue {} completed", url));
             subscriptions.put(url, cancellable);
         } else {
             log.info("subscription already exists for {}", url);

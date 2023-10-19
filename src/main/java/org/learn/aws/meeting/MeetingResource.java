@@ -1,4 +1,4 @@
-package org.learn.aws;
+package org.learn.aws.meeting;
 
 import io.quarkus.redis.datasource.ReactiveRedisDataSource;
 import io.smallrye.mutiny.Uni;

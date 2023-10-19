@@ -1,7 +1,8 @@
-package org.learn.aws;
+package org.learn.aws.meeting.attendee;
 
 import lombok.Builder;
 import lombok.Data;
+import org.learn.aws.meeting.MeetingDto;
 
 @Data
 @Builder

@@ -1,4 +1,4 @@
-package org.learn.aws;
+package org.learn.aws.mediaPipeline;
 
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;

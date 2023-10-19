@@ -1,4 +1,4 @@
-package org.learn.aws;
+package org.learn.aws.meeting.attendee;
 
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
@@ -12,8 +12,8 @@ public interface AttendeeMapper {
     @Mapping(target = "externalUserId", expression = "java(attendee.externalUserId())")
     @Mapping(target = "attendeeId", expression = "java(attendee.attendeeId())")
     @Mapping(target = "joinToken", expression = "java(attendee.joinToken())")
-    public AttendeeDto map(Attendee attendee);
+    AttendeeDto map(Attendee attendee);
 
-    public List<AttendeeDto> map(List<Attendee> attendees);
+    List<AttendeeDto> map(List<Attendee> attendees);
 
 }

@@ -1,4 +1,4 @@
-package org.learn.aws;
+package org.learn.aws.meeting.mediaCapturePipeline;
 
 import lombok.Builder;
 import lombok.Data;

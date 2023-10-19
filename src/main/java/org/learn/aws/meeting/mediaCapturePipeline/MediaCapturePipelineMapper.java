@@ -1,4 +1,4 @@
-package org.learn.aws;
+package org.learn.aws.meeting.mediaCapturePipeline;
 
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
@@ -16,6 +16,6 @@ public interface MediaCapturePipelineMapper {
     @Mapping(target = "sinkArn", expression = "java(mediaCapturePipeline.sinkArn())")
     @Mapping(target = "createdTimestamp", expression = "java(mediaCapturePipeline.createdTimestamp())")
     @Mapping(target = "updatedTimestamp", expression = "java(mediaCapturePipeline.updatedTimestamp())")
-    public MediaCapturePipelineDto map(MediaCapturePipeline mediaCapturePipeline);
+    MediaCapturePipelineDto map(MediaCapturePipeline mediaCapturePipeline);
 
 }

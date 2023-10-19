@@ -1,8 +1,9 @@
-package org.learn.aws;
+package org.learn.aws.meeting.mediaCapturePipeline;
 
 import io.quarkus.redis.datasource.ReactiveRedisDataSource;
 import io.smallrye.mutiny.Uni;
 import lombok.extern.slf4j.Slf4j;
+import org.learn.aws.meeting.MeetingDto;
 import software.amazon.awssdk.services.chimesdkmediapipelines.ChimeSdkMediaPipelinesClient;
 import software.amazon.awssdk.services.chimesdkmediapipelines.model.ArtifactsConcatenationConfiguration;
 import software.amazon.awssdk.services.chimesdkmediapipelines.model.ArtifactsConcatenationState;
@@ -35,7 +36,7 @@ import javax.ws.rs.PathParam;
 
 import java.util.List;
 
-import static org.learn.aws.MeetingResource.MEETINGS_KEY;
+import static org.learn.aws.meeting.MeetingResource.MEETINGS_KEY;
 
 @Slf4j
 @Path("/meetings/{meetingId}/mediaCapturePipelines")
@@ -49,6 +50,29 @@ public class MediaCapturePipelineResource {
 
     @Inject
     ReactiveRedisDataSource ds;
+
+    @DELETE
+    @Path("/{mediaPipelineId}")
+    public void stopMediaCapturePipeline(
+        @PathParam("meetingId") String meetingId,
+        @PathParam("mediaPipelineId") String mediaPipelineId) {
+        delete(mediaPipelineId);
+        log.info("media capture pipeline stopped for meeting {} : {}", meetingId, mediaPipelineId);
+    }
+
+    private void delete(String mediaPipelineId) {
+        final DeleteMediaCapturePipelineRequest request =
+            DeleteMediaCapturePipelineRequest.builder()
+                                             .mediaPipelineId(mediaPipelineId)
+                                             .build();
+        chimeSdkMediaPipelinesClient.deleteMediaCapturePipeline(request);
+    }
+
+    @POST
+    public Uni<MediaCapturePipelineDto> startMediaCapturePipeline(@PathParam("meetingId") String meetingId) {
+        log.info("start media capture pipeline for meeting {}", meetingId);
+        return find(meetingId).map(this::create);
+    }
 
     private Uni<MeetingDto> find(String meetingId) {
         return ds.list(MeetingDto.class)
@@ -78,6 +102,8 @@ public class MediaCapturePipelineResource {
         final CreateMediaCapturePipelineResponse captureResponse =
             chimeSdkMediaPipelinesClient.createMediaCapturePipeline(captureRequest);
 
+        log.info("CreateMediaCapturePipelineResponse : {}", captureResponse);
+
         // create media concatenation pipeline
 
         final String mediaPipelineArn = captureResponse.mediaCapturePipeline().mediaPipelineArn();
@@ -93,21 +119,6 @@ public class MediaCapturePipelineResource {
             log.info("CreateMediaConcatenationPipelineResponse : {}", concatenationResponse);
 
         return mapper.map(captureResponse.mediaCapturePipeline());
-    }
-
-    @POST
-    public Uni<MediaCapturePipelineDto> startMediaCapturePipeline(@PathParam("meetingId") String meetingId) {
-        log.info("start media capture pipeline for meeting {}", meetingId);
-        return find(meetingId).map(this::create)
-                              .invoke(pipeline -> log.info("media capture pipeline started for meeting {} : {}", meetingId, pipeline));
-    }
-
-    private void delete(String mediaPipelineId) {
-        final DeleteMediaCapturePipelineRequest request =
-            DeleteMediaCapturePipelineRequest.builder()
-                                             .mediaPipelineId(mediaPipelineId)
-                                             .build();
-        chimeSdkMediaPipelinesClient.deleteMediaCapturePipeline(request);
     }
 
     private ConcatenationSink concatenationSink() {
@@ -159,15 +170,6 @@ public class MediaCapturePipelineResource {
             .transcriptionMessages(TranscriptionMessagesConcatenationConfiguration.builder().state(ArtifactsConcatenationState.ENABLED).build())
             .video(VideoConcatenationConfiguration.builder().state(ArtifactsConcatenationState.ENABLED).build())
             .build();
-    }
-
-    @DELETE
-    @Path("/{mediaPipelineId}")
-    public void stopMediaCapturePipeline(
-        @PathParam("meetingId") String meetingId,
-        @PathParam("mediaPipelineId") String mediaPipelineId) {
-        delete(mediaPipelineId);
-        log.info("media capture pipeline stopped for meeting {} : {}", meetingId, mediaPipelineId);
     }
 
 

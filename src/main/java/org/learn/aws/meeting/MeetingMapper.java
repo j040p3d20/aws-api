@@ -1,4 +1,4 @@
-package org.learn.aws;
+package org.learn.aws.meeting;
 
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
@@ -18,15 +18,15 @@ public interface MeetingMapper {
     @Mapping(target = "screenViewingUrl", expression = "java(mediaPlacement.screenViewingUrl())")
     @Mapping(target = "screenSharingUrl", expression = "java(mediaPlacement.screenSharingUrl())")
     @Mapping(target = "eventIngestionUrl", expression = "java(mediaPlacement.eventIngestionUrl())")
-    public MediaPlacementDto map (MediaPlacement mediaPlacement);
+    MediaPlacementDto map(MediaPlacement mediaPlacement);
 
     @Mapping(target = "meetingId", expression = "java(meeting.meetingId())")
     @Mapping(target = "meetingArn", expression = "java(meeting.meetingArn())")
     @Mapping(target = "externalMeetingId", expression = "java(meeting.externalMeetingId())")
     @Mapping(target = "mediaRegion", expression = "java(meeting.mediaRegion())")
     @Mapping(target = "mediaPlacement", expression = "java(map(meeting.mediaPlacement()))")
-    public MeetingDto map(Meeting meeting);
+    MeetingDto map(Meeting meeting);
 
-    public List<MeetingDto> map(List<Meeting> Meetings);
+    List<MeetingDto> map(List<Meeting> Meetings);
 
 }

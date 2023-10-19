@@ -1,7 +1,8 @@
-package org.learn.aws;
+package org.learn.aws.meeting.attendee;
 
 import io.quarkus.redis.datasource.ReactiveRedisDataSource;
 import io.smallrye.mutiny.Uni;
+import org.learn.aws.meeting.MeetingDto;
 import software.amazon.awssdk.services.chimesdkmeetings.ChimeSdkMeetingsClient;
 import software.amazon.awssdk.services.chimesdkmeetings.model.CreateAttendeeRequest;
 import software.amazon.awssdk.services.chimesdkmeetings.model.CreateAttendeeResponse;
@@ -15,7 +16,7 @@ import javax.ws.rs.PathParam;
 import java.util.List;
 import java.util.UUID;
 
-import static org.learn.aws.MeetingResource.MEETINGS_KEY;
+import static org.learn.aws.meeting.MeetingResource.MEETINGS_KEY;
 
 @Path("/meetings/{meetingId}/attendees")
 public class MeetingAttendeesResource {

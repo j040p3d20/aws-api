@@ -1,4 +1,4 @@
-package org.learn.aws;
+package org.learn.aws.bucket;
 
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
@@ -10,9 +10,8 @@ import java.util.List;
 public interface BucketMapper {
 
     @Mapping(target = "name", expression = "java(bucket.name())")
-    @Mapping(target = "creationDate", expression = "java(bucket.creationDate())")
-    public BucketDto map(Bucket bucket);
+    @Mapping(target = "creationDate", expression = "java(bucket.creationDate())") BucketDto map(Bucket bucket);
 
-    public List<BucketDto> map(List<Bucket> buckets);
+    List<BucketDto> map(List<Bucket> buckets);
 
 }

@@ -1,4 +1,4 @@
-package org.learn.aws;
+package org.learn.aws.mediaPipeline;
 
 import lombok.Builder;
 import lombok.Data;
