@@ -12,7 +12,7 @@ public class AwsCredentialsProviderProducer {
     @Produces
     public AwsCredentialsProvider awsCredentialsProvider() {
         return ProfileCredentialsProvider.builder()
-                                         .profileName("default")
+                                         .profileName("chime-service-user")
                                          .build();
     }
 }

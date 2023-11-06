@@ -45,7 +45,7 @@ import java.util.UUID;
     public Uni<MeetingDto> create() {
 
         NotificationsConfiguration notificationsConfiguration =
-            NotificationsConfiguration.builder().sqsQueueArn("arn:aws:sqs:us-east-1:622938434879:q").build();
+            NotificationsConfiguration.builder().sqsQueueArn("arn:aws:sqs:us-east-1:622938434879:chime-sqs").build();
 
         CreateMeetingRequest request = CreateMeetingRequest.builder()
                                                            .mediaRegion("us-east-1")

@@ -59,8 +59,8 @@ public class QueueResource {
         return urls;
     }
 
-    public List<Message> fetchMessages(Long l, String url) {
-        log.info("fetching messages for tick {} : queue : {}", l, url);
+    public List<Message> fetchMessages(String url) {
+        log.debug("fetching messages for queue : {}", url);
         final ReceiveMessageRequest request = ReceiveMessageRequest.builder()
                                                                    .queueUrl(url)
                                                                    .maxNumberOfMessages(MAX_NUMBEROF_MESSAGES)
@@ -68,44 +68,32 @@ public class QueueResource {
                                                                    .visibilityTimeout(3600)
                                                                    .build();
         final ReceiveMessageResponse response = sqsClient.receiveMessage(request);
-        log.info("received messages for queue : {} : {}", url, response.messages().size());
+        log.debug("received messages for queue : {} : {}", url, response.messages().size());
         return response.messages();
     }
 
-    @Synchronized private void subscribe(String url) {
+    @Synchronized
+    private void subscribe(String url) {
 
-//        https://github.com/smallrye/smallrye-reactive-messaging/issues/1117
-
-//        public PublisherBuilder<? extends Message<?>> getSource() {
-//            Multi<Message<?>> publisher = Uni.createFrom()
-//                                             .completionStage(() -> sqsClient.receiveMessage(m -> m.queueUrl(url)))
-//                                             .repeat().indefinitely()
-//                                             .invoke(() -> System.out.println("Log SQS invocation"))
-//                                             .onItem().transformToIterable(ReceiveMessageResponse::messages)
-//                                             .onItem().transform(Message::of);
-//
-//            return ReactiveStreams.fromPublisher(publisher);
-//        }
-
-//        https://smallrye.io/smallrye-mutiny/2.0.0/guides/delaying-events/#throttling-a-multi
-
-//        https://smallrye.io/smallrye-mutiny/2.5.1/guides/polling/
-
+        if (!url.equals("https://sqs.us-east-1.amazonaws.com/622938434879/chime-sqs")) {
+            log.info("subscription ignored for : {}", url);
+            return;
+        }
 
         if (!subscriptions.containsKey(url)) {
             log.info("creating subscription for {}", url);
             Cancellable cancellable =
-                Uni.createFrom().item(() -> fetchMessages(0L, url))
+                Uni.createFrom().item(() -> fetchMessages(url))
                    .repeat().indefinitely()
-                   .emitOn(Infrastructure.getDefaultWorkerPool())
-                   .runSubscriptionOn(Infrastructure.getDefaultWorkerPool())
+                   .emitOn(Infrastructure.getDefaultExecutor())
+                   .runSubscriptionOn(Infrastructure.getDefaultExecutor())
                    .flatMap(Multi.createFrom()::iterable)
-                   .invoke(m -> {
+                   .onItem().invoke(m -> {
                        sqsClient.deleteMessage(DeleteMessageRequest.builder().queueUrl(url).receiptHandle(m.receiptHandle()).build());
-                       log.info("queue {} message {} processed and deleted", url, m.body());
+//                       log.info("queue {} message {} processed and deleted", url, m.body());
                    })
                    .subscribe().with(
-                       m -> log.debug("queue {} message {}", url, m),
+                       m -> log.info("queue {} message {}", url, m.body()),
                        ex -> log.error("queue " + url + " error", ex),
                        () -> log.info("queue {} completed", url));
             subscriptions.put(url, cancellable);

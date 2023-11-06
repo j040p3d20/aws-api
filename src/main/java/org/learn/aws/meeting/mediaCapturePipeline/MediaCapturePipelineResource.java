@@ -96,7 +96,7 @@ public class MediaCapturePipelineResource {
                                              .sourceType("ChimeSdkMeeting")
                                              .sourceArn(meeting.getMeetingArn())
                                              .sinkType("S3Bucket")
-                                             .sinkArn("arn:aws:s3:::com.sparcway.scannertmptest")
+                                             .sinkArn("arn:aws:s3:::org.learn.aws.chime")
                                              .build();
 
         final CreateMediaCapturePipelineResponse captureResponse =
@@ -132,7 +132,7 @@ public class MediaCapturePipelineResource {
     private S3BucketSinkConfiguration s3BucketSinkConfiguration() {
         return S3BucketSinkConfiguration
             .builder()
-            .destination("arn:aws:s3:::com.sparcway.scannertmptest")
+            .destination("arn:aws:s3:::org.learn.aws.chime")
             .build();
     }
 
