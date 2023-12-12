@@ -1,5 +1,7 @@
 package org.learn.aws;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.infrastructure.Infrastructure;
@@ -8,7 +10,6 @@ import lombok.Synchronized;
 import lombok.extern.slf4j.Slf4j;
 import software.amazon.awssdk.services.sqs.SqsClient;
 import software.amazon.awssdk.services.sqs.model.DeleteMessageRequest;
-import software.amazon.awssdk.services.sqs.model.Message;
 import software.amazon.awssdk.services.sqs.model.ReceiveMessageRequest;
 import software.amazon.awssdk.services.sqs.model.ReceiveMessageResponse;
 
@@ -32,9 +33,14 @@ public class QueueResource {
     private static final Integer MAX_NUMBEROF_MESSAGES = 10;
 
     private static final Integer WAIT_TIME_SECONDS = 10;
+    private static final String DETAIL_TYPE_CHIME_MEETING_STATE_CHANGE = "Chime Meeting State Change";
+    private static final String DETAIL_TYPE_CHIME_MEDIA_PIPELINE_STATE_CHANGE = "Chime Media Pipeline State Change";
 
     @Inject
     SqsClient sqsClient;
+
+    @Inject
+    ObjectMapper mapper;
 
     Map<String, Cancellable> subscriptions = new HashMap<>();
 
@@ -59,13 +65,13 @@ public class QueueResource {
         return urls;
     }
 
-    public List<Message> fetchMessages(String url) {
+    public List<software.amazon.awssdk.services.sqs.model.Message> fetchMessages(String url) {
         log.debug("fetching messages for queue : {}", url);
         final ReceiveMessageRequest request = ReceiveMessageRequest.builder()
                                                                    .queueUrl(url)
                                                                    .maxNumberOfMessages(MAX_NUMBEROF_MESSAGES)
                                                                    .waitTimeSeconds(WAIT_TIME_SECONDS)
-                                                                   .visibilityTimeout(3600)
+                                                                   .visibilityTimeout(10)
                                                                    .build();
         final ReceiveMessageResponse response = sqsClient.receiveMessage(request);
         log.debug("received messages for queue : {} : {}", url, response.messages().size());
@@ -89,11 +95,21 @@ public class QueueResource {
                    .runSubscriptionOn(Infrastructure.getDefaultExecutor())
                    .flatMap(Multi.createFrom()::iterable)
                    .onItem().invoke(m -> {
-                       sqsClient.deleteMessage(DeleteMessageRequest.builder().queueUrl(url).receiptHandle(m.receiptHandle()).build());
-//                       log.info("queue {} message {} processed and deleted", url, m.body());
+                       try {
+                           final Message msg = mapper.readValue(m.body(), Message.class);
+                           if (msg.getDetailType().equals(DETAIL_TYPE_CHIME_MEDIA_PIPELINE_STATE_CHANGE)) {
+                               log.info("pipeline : {}", msg.getDetail().getMediaPipelineId());
+                           }
+                           log.info("message : {}", msg);
+                           sqsClient.deleteMessage(DeleteMessageRequest.builder().queueUrl(url).receiptHandle(m.receiptHandle()).build());
+//                           log.info("deleted : {}", m.body());
+                       } catch (JsonProcessingException e) {
+                           log.error("error parsing message : " + m.body(), e);
+                       }
+
                    })
                    .subscribe().with(
-                       m -> log.info("queue {} message {}", url, m.body()),
+                       m -> log.trace("queue {} message {}", url, m.body()),
                        ex -> log.error("queue " + url + " error", ex),
                        () -> log.info("queue {} completed", url));
             subscriptions.put(url, cancellable);
